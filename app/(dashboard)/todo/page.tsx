@@ -1,110 +1,172 @@
 "use client";
 
-import { useState } from "react";
-import { INITIAL_TASKS, INITIAL_IDEAS, INITIAL_LEADS, INITIAL_POSTS } from "@/lib/constants";
-import { TodoHeader } from "@/components/todo/TodoHeader";
+import { useState, useEffect } from "react";
+import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, PointerSensor, useSensor, useSensors, closestCorners } from "@dnd-kit/core";
+import { useApi, apiMutate } from "@/lib/hooks/use-api";
+import { KANBAN_COLUMNS } from "@/lib/constants";
+import type { Task, TaskStatus, AppUser } from "@/lib/types";
+import { KanbanColumn } from "@/components/todo/KanbanColumn";
 import { TaskCard } from "@/components/todo/TaskCard";
-import { Task, TaskPriority } from "@/lib/types";
-import { ChevronDown } from "lucide-react";
-import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
-import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { TaskFormDialog } from "@/components/todo/TaskFormDialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Plus, Search, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// Helper to group tasks by priority
-const groupTasks = (tasks: Task[]) => {
-    return {
-        URGENT: tasks.filter(t => t.priority === "URGENT"),
-        IMPORTANT: tasks.filter(t => t.priority === "IMPORTANT"),
-        NORMAL: tasks.filter(t => t.priority === "NORMAL"),
-    };
-};
-
 export default function TodoPage() {
-    const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
-    const [filter, setFilter] = useState<"all" | "mine" | "urgent">("all");
-    const [activeId, setActiveId] = useState<string | null>(null);
+  const { data, loading, refetch } = useApi<{ tasks: Task[] }>("/api/tasks");
+  const { data: usersData } = useApi<{ users: AppUser[] }>("/api/users");
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [activeTask, setActiveTask] = useState<Task | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [filterAssignee, setFilterAssignee] = useState<string>("all");
+  const [filterPriority, setFilterPriority] = useState<string>("all");
+  const [search, setSearch] = useState("");
 
-    const sensors = useSensors(
-        useSensor(PointerSensor, {
-            activationConstraint: {
-                distance: 8,
-            },
-        })
+  const users = usersData?.users || [];
+
+  useEffect(() => {
+    if (data?.tasks) setTasks(data.tasks);
+  }, [data]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  );
+
+  const handleDragStart = (event: DragStartEvent) => {
+    const task = tasks.find((t) => t.id === event.active.id);
+    setActiveTask(task || null);
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    setActiveTask(null);
+    const { active, over } = event;
+    if (!over) return;
+
+    const taskId = active.id as string;
+    const newStatus = over.id as TaskStatus;
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task || task.status === newStatus) return;
+
+    setTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t))
     );
 
-    const grouped = groupTasks(tasks);
+    try {
+      await apiMutate(`/api/tasks/${taskId}`, "PATCH", { status: newStatus });
+    } catch {
+      setTasks((prev) =>
+        prev.map((t) => (t.id === taskId ? { ...t, status: task.status } : t))
+      );
+    }
+  };
 
-    // Drag End Logic (Reordering or Moving between lists technically, but here just reorder in same list visual)
-    // Note: For full Kanban-like move between priorities, we'd need multiple containers logic.
-    // For now, I'll implement simple reordering within the same visual list if needed, 
-    // but DnD usually implies reordering. 
-    // Since the user asked for DnD, I'll assume they want to be able to drag tasks around.
-    // Reordering across different priorities implies changing priority.
+  const handleDelete = async (taskId: string) => {
+    setTasks((prev) => prev.filter((t) => t.id !== taskId));
+    try {
+      await apiMutate(`/api/tasks/${taskId}`, "DELETE");
+    } catch {
+      refetch();
+    }
+  };
 
-    const handleDragEnd = (event: DragEndEvent) => {
-        setActiveId(null);
-        const { active, over } = event;
+  const handleEdit = (task: Task) => {
+    setEditingTask(task);
+    setIsFormOpen(true);
+  };
 
-        if (!over) return;
+  const filteredTasks = tasks.filter((t) => {
+    if (filterAssignee !== "all") {
+      const ids = Array.isArray(t.assigned_to) ? (t.assigned_to as string[]) : [];
+      if (!ids.includes(filterAssignee)) return false;
+    }
+    if (filterPriority !== "all" && t.priority !== filterPriority) return false;
+    if (search && !t.title.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
 
-        // Simplification: In a full implementation, we'd handle reordering array.
-        // Here we just acknowledge the drop. To truly reorder, I'd need to use `arrayMove`.
-        // But since the list is grouped by priority, moving a task from URGENT to IMPORTANT section
-        // should update its priority.
-    };
-
-    const handleDragStart = (event: DragStartEvent) => {
-        setActiveId(event.active.id as string);
-    };
-
+  if (loading) {
     return (
-        <div className="max-w-5xl mx-auto">
-            <TodoHeader filter={filter} setFilter={setFilter} onNewTask={() => { }} />
-
-            <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-
-                {/* Sections */}
-                {/* To make DnD work effectively across sections, we usually treat the whole list or separate lists. */}
-                {/* I'll wrap each section in a SortableContext if I want reordering within section. */}
-
-                {(Object.keys(grouped) as TaskPriority[]).map((priority) => {
-                    const sectionTasks = grouped[priority];
-                    if (sectionTasks.length === 0) return null;
-
-                    const color = priority === "URGENT" ? "#ff3366" : priority === "IMPORTANT" ? "#ffaa00" : "#00ff88";
-                    const label = priority;
-
-                    return (
-                        <div key={priority} className="mb-8">
-                            <div className="flex items-center gap-3 py-4 border-b-2 border-border mb-4">
-                                <div className="text-2xl">{priority === "URGENT" ? "🔴" : priority === "IMPORTANT" ? "🟡" : "🟢"}</div>
-                                <h3 className="text-lg font-bold text-white tracking-wide">{label}</h3>
-                                <span className="h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold text-black" style={{ backgroundColor: color }}>
-                                    {sectionTasks.length}
-                                </span>
-                            </div>
-
-                            <SortableContext items={sectionTasks} strategy={verticalListSortingStrategy}>
-                                <div className="flex flex-col gap-2">
-                                    {sectionTasks.map(task => (
-                                        <TaskCard key={task.id} task={task} />
-                                    ))}
-                                </div>
-                            </SortableContext>
-                        </div>
-                    );
-                })}
-
-                <DragOverlay>
-                    {activeId ? (
-                        <div className="opacity-80 rotate-2 cursor-grabbing">
-                            {/* Simplified Overlay duplicate of card */}
-                            <div className="bg-surface border border-primary p-4 rounded-xl text-white">Moved Task</div>
-                        </div>
-                    ) : null}
-                </DragOverlay>
-
-            </DndContext>
-        </div>
+      <div className="flex items-center justify-center h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
     );
+  }
+
+  return (
+    <div className="h-[calc(100vh-120px)] flex flex-col">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between mb-4 gap-3">
+        <div className="flex flex-wrap gap-2 items-center">
+          <div className="relative w-full sm:w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
+            <Input
+              placeholder="Rechercher..."
+              className="pl-10"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <select
+            value={filterAssignee}
+            onChange={(e) => setFilterAssignee(e.target.value)}
+            className="h-11 bg-surface border border-border rounded-xl px-3 text-sm text-text-primary flex-1 sm:flex-none"
+          >
+            <option value="all">Tous</option>
+            {users.map((u) => (
+              <option key={u.id} value={u.id}>{u.full_name}</option>
+            ))}
+          </select>
+          <select
+            value={filterPriority}
+            onChange={(e) => setFilterPriority(e.target.value)}
+            className="h-11 bg-surface border border-border rounded-xl px-3 text-sm text-text-primary flex-1 sm:flex-none"
+          >
+            <option value="all">Priorité</option>
+            <option value="URGENT">Urgent</option>
+            <option value="IMPORTANT">Important</option>
+            <option value="NORMAL">Normal</option>
+          </select>
+        </div>
+        <Button onClick={() => { setEditingTask(null); setIsFormOpen(true); }} className="w-full sm:w-auto">
+          <Plus className="mr-2 h-4 w-4" /> Nouvelle tâche
+        </Button>
+      </div>
+
+      {/* Kanban Board */}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCorners}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="flex gap-5 overflow-x-auto pb-4 h-full">
+          {KANBAN_COLUMNS.map((col) => (
+            <KanbanColumn
+              key={col.id}
+              id={col.id}
+              title={col.title}
+              color={col.color}
+              tasks={filteredTasks.filter((t) => t.status === col.id)}
+              users={users}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+            />
+          ))}
+        </div>
+        <DragOverlay>
+          {activeTask ? <TaskCard task={activeTask} users={users} /> : null}
+        </DragOverlay>
+      </DndContext>
+
+      <TaskFormDialog
+        open={isFormOpen}
+        onClose={() => { setIsFormOpen(false); setEditingTask(null); }}
+        onSaved={refetch}
+        users={users}
+        task={editingTask}
+      />
+    </div>
+  );
 }

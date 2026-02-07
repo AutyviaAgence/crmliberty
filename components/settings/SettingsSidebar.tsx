@@ -1,6 +1,6 @@
 "use client";
 
-import { User, Users, Bell, Link as LinkIcon, Palette } from "lucide-react";
+import { User, Users, Bell, Palette } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface SettingsSidebarProps {
@@ -12,7 +12,6 @@ const TABS = [
     { id: "account", label: "Compte", icon: User },
     { id: "team", label: "Équipe", icon: Users },
     { id: "notifications", label: "Notifications", icon: Bell },
-    { id: "integrations", label: "Intégrations", icon: LinkIcon },
     { id: "appearance", label: "Apparence", icon: Palette },
 ];
 
@@ -30,8 +29,8 @@ export function SettingsSidebar({ activeTab, setActiveTab }: SettingsSidebarProp
                             className={cn(
                                 "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors text-left",
                                 isActive
-                                    ? "bg-primary text-white shadow-colored"
-                                    : "text-text-muted hover:bg-[#1a1a1a] hover:text-white"
+                                    ? "bg-primary text-text-primary shadow-colored"
+                                    : "text-text-muted hover:bg-surface-hover hover:text-text-primary"
                             )}
                         >
                             <Icon className="h-4 w-4" />

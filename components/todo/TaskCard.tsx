@@ -1,96 +1,103 @@
 "use client";
 
-import { Task } from "@/lib/types";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Avatar } from "@/components/ui/avatar";
-import { Calendar, MoreVertical, GripVertical } from "lucide-react"; // Grip for drag handle if needed
-import { USERS } from "@/lib/constants";
-import { cn } from "@/lib/utils";
-import { useSortable } from "@dnd-kit/sortable";
+import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
+import type { Task, AppUser } from "@/lib/types";
+import { Avatar } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { getInitials, cn } from "@/lib/utils";
+import { Calendar, Pencil, Trash2, GripVertical } from "lucide-react";
 
 interface TaskCardProps {
-    task: Task;
+  task: Task;
+  users: AppUser[];
+  onEdit?: () => void;
+  onDelete?: () => void;
 }
 
-export function TaskCard({ task }: TaskCardProps) {
-    const {
-        attributes,
-        listeners,
-        setNodeRef,
-        transform,
-        transition,
-        isDragging
-    } = useSortable({ id: task.id });
+const priorityConfig = {
+  URGENT: { label: "Urgent", variant: "destructive" as const },
+  IMPORTANT: { label: "Important", variant: "warning" as const },
+  NORMAL: { label: "Normal", variant: "success" as const },
+};
 
-    const style = {
-        transform: CSS.Transform.toString(transform),
-        transition,
-        opacity: isDragging ? 0.5 : 1,
-        zIndex: isDragging ? 1000 : 1,
-    };
+export function TaskCard({ task, users, onEdit, onDelete }: TaskCardProps) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: task.id,
+  });
 
-    const priorityColor =
-        task.priority === "URGENT" ? "border-l-[#ff3366]" :
-            task.priority === "IMPORTANT" ? "border-l-[#ffaa00]" : "border-l-[#00ff88]";
+  const style = transform
+    ? { transform: CSS.Translate.toString(transform), opacity: isDragging ? 0.5 : 1 }
+    : undefined;
 
-    const priorityColorHex =
-        task.priority === "URGENT" ? "#ff3366" :
-            task.priority === "IMPORTANT" ? "#ffaa00" : "#00ff88";
+  const priority = priorityConfig[task.priority as keyof typeof priorityConfig] || priorityConfig.NORMAL;
+  const assignedIds = Array.isArray(task.assigned_to) ? (task.assigned_to as string[]) : [];
+  const assignees = users.filter((u) => assignedIds.includes(u.id));
+  const deadlineDate = task.deadline ? new Date(task.deadline) : null;
+  const isOverdue = deadlineDate ? deadlineDate.getTime() < Date.now() : false;
 
-    const assignee = Object.values(USERS).find(u => u.id === task.assignedTo);
-
-    // Parse date safely
-    const deadlineDate = new Date(task.deadline);
-    const isUrgentDeadline = deadlineDate.getTime() - Date.now() < 86400000;
-
-    return (
-        <div
-            ref={setNodeRef}
-            style={style}
-            {...attributes}
-            {...listeners}
-            className={cn(
-                "bg-surface border border-border rounded-xl p-5 mb-3 flex items-center gap-4 group hover:shadow-lg transition-all border-l-4",
-                priorityColor,
-                isDragging && "ring-2 ring-primary ring-opacity-50"
-            )}
-        >
-            <Checkbox className="h-6 w-6 rounded-md border-primary/50 data-[state=checked]:bg-primary" />
-
-            <div className="flex-grow min-w-0">
-                <h4 className="text-white font-bold text-base truncate">{task.title}</h4>
-                <p className="text-text-muted text-sm truncate">{task.description}</p>
-            </div>
-
-            <div className="flex items-center gap-3 hidden sm:flex">
-                {/* Project Tag */}
-                <div className="bg-[#1a1a1a] px-3 py-1.5 rounded-lg text-xs font-medium">
-                    <span className={task.project === "WeHill" ? "text-white" : "text-primary"}>
-                        {task.project}
-                    </span>
-                </div>
-
-                {/* Deadline */}
-                <div className={cn("flex items-center gap-1.5 text-xs", isUrgentDeadline ? "text-danger" : "text-text-muted")}>
-                    <Calendar className="h-3.5 w-3.5" />
-                    <span>
-                        {deadlineDate.toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
-                    </span>
-                </div>
-
-                {/* Assignee */}
-                <Avatar
-                    src={assignee?.avatar}
-                    fallback={assignee?.name.substring(0, 2)}
-                    className="h-9 w-9 border-2 cursor-pointer hover:scale-110 transition-transform"
-                    style={{ borderColor: priorityColorHex }}
-                />
-            </div>
-
-            <button className="p-2 hover:bg-[#1a1a1a] rounded-lg transition-colors text-text-muted">
-                <MoreVertical className="h-5 w-5" />
-            </button>
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "bg-surface border border-border rounded-xl p-4 group hover:border-border-hover transition-all cursor-grab active:cursor-grabbing",
+        isDragging && "ring-2 ring-primary shadow-lg"
+      )}
+    >
+      <div className="flex items-start justify-between mb-2">
+        <div className="flex items-center gap-2 flex-1 min-w-0" {...attributes} {...listeners}>
+          <GripVertical className="h-4 w-4 text-text-muted shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+          <h4 className="text-text-primary font-medium text-sm truncate">{task.title}</h4>
         </div>
-    );
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {onEdit && (
+            <button onClick={onEdit} className="p-1 hover:bg-surface-hover rounded-lg transition-colors">
+              <Pencil className="h-3.5 w-3.5 text-text-muted" />
+            </button>
+          )}
+          {onDelete && (
+            <button onClick={onDelete} className="p-1 hover:bg-surface-hover rounded-lg transition-colors">
+              <Trash2 className="h-3.5 w-3.5 text-danger" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {task.description && (
+        <p className="text-xs text-text-muted mb-3 line-clamp-2 pl-6">{task.description}</p>
+      )}
+
+      <div className="flex items-center justify-between pl-6">
+        <div className="flex items-center gap-2">
+          <Badge variant={priority.variant} className="text-[10px] px-1.5 py-0">
+            {priority.label}
+          </Badge>
+          {deadlineDate && (
+            <span className={cn("flex items-center gap-1 text-[10px]", isOverdue ? "text-danger" : "text-text-muted")}>
+              <Calendar className="h-3 w-3" />
+              {deadlineDate.toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
+            </span>
+          )}
+        </div>
+        {assignees.length > 0 && (
+          <div className="flex -space-x-1.5">
+            {assignees.slice(0, 3).map((u) => (
+              <Avatar
+                key={u.id}
+                fallback={getInitials(u.full_name)}
+                className="h-6 w-6 text-[10px] border border-surface"
+                title={u.full_name}
+              />
+            ))}
+            {assignees.length > 3 && (
+              <div className="h-6 w-6 rounded-full bg-surface-hover border border-surface flex items-center justify-center">
+                <span className="text-[9px] text-text-muted">+{assignees.length - 3}</span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }

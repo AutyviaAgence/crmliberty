@@ -1,118 +1,48 @@
+import type { Database } from "./database.types";
+
 // Navigation
 export type NavItem = {
-    label: string;
-    href: string;
-    icon: any; // Lucide icon
-    active?: boolean;
+  label: string;
+  href: string;
+  icon: any;
 };
 
-// Dashboard Stats
-export type StatCardProps = {
-    label: string;
-    value: string;
-    icon: any;
-    color: "green" | "orange" | "blue";
-};
-
-export type UrgentTask = {
-    id: string;
-    text: string;
-    priority: "URGENT";
-    assignedTo: User;
-    checked: boolean;
-};
-
-export type TimelineEvent = {
-    id: string;
-    text: string;
-    timestamp: string;
-    type: "task" | "lead" | "post" | "idea";
-};
-
-// Users
-export type User = {
-    id: string;
-    name: string;
-    avatar: string;
-    role: string;
-    email: string;
-};
-
-// To-Do Logic
+// DB Row types
+export type Task = Database["public"]["Tables"]["tasks"]["Row"];
+export type TaskInsert = Database["public"]["Tables"]["tasks"]["Insert"];
+export type TaskUpdate = Database["public"]["Tables"]["tasks"]["Update"];
 export type TaskPriority = "URGENT" | "IMPORTANT" | "NORMAL";
+export type TaskStatus = "todo" | "in_progress" | "done";
 
-export type Task = {
-    id: string;
-    title: string;
-    description: string;
-    priority: TaskPriority;
-    status: "todo" | "done";
-    project: "WeHill" | "SaaS";
-    deadline: string; // ISO date
-    assignedTo: string; // User ID
-};
-
-// Ideas Logic
+export type Idea = Database["public"]["Tables"]["ideas"]["Row"];
+export type IdeaInsert = Database["public"]["Tables"]["ideas"]["Insert"];
+export type IdeaUpdate = Database["public"]["Tables"]["ideas"]["Update"];
 export type IdeaStatus = "Brouillon" | "En cours" | "Fait";
 
-export type Idea = {
-    id: string;
-    title: string;
-    description: string;
-    structuredDescription?: string;
-    actions?: string[];
-    status: IdeaStatus;
-    createdAt: string;
-};
+export type SocialAccount = Database["public"]["Tables"]["social_accounts"]["Row"];
+export type SocialAccountInsert = Database["public"]["Tables"]["social_accounts"]["Insert"];
+export type SocialAccountUpdate = Database["public"]["Tables"]["social_accounts"]["Update"];
 
-// Marketing Logic
-export type SocialPlatform = "Instagram" | "TikTok" | "LinkedIn" | "X";
+export type SocialPost = Database["public"]["Tables"]["social_posts"]["Row"];
+export type SocialPostInsert = Database["public"]["Tables"]["social_posts"]["Insert"];
+export type SocialPostUpdate = Database["public"]["Tables"]["social_posts"]["Update"];
 
-export type SocialPost = {
-    id: string;
-    content: string;
-    platforms: SocialPlatform[];
-    scheduledDate: string; // ISO date/time
-    influencer?: string; // Influencer ID
-    media?: string;
-    status: "scheduled" | "draft" | "published";
-};
+export type Lead = Database["public"]["Tables"]["leads"]["Row"];
+export type LeadInsert = Database["public"]["Tables"]["leads"]["Insert"];
+export type LeadUpdate = Database["public"]["Tables"]["leads"]["Update"];
+export type LeadStatus = "prospect" | "contact" | "demo" | "negociation" | "whitelist" | "actif";
+export type WhitelistStatus = "pending" | "approved" | "active" | "revoked";
 
-export type Influencer = {
-    id: string;
-    name: string;
-    avatar: string;
-    platforms: SocialPlatform[];
-    stats: {
-        followers: string;
-        posts: string;
-        engagement: string;
-    };
-};
+export type ActivityLog = Database["public"]["Tables"]["activity_log"]["Row"];
 
-// Acquisition Logic
-export type LeadStatus = "PROSPECTS" | "DECOUVERTE" | "DEMO" | "NEGOCIATION" | "GAGNE";
+export type SocialPlatform = "Instagram" | "TikTok" | "LinkedIn" | "X" | "Facebook" | "YouTube";
 
-export type Lead = {
-    id: string;
-    company: string;
-    contact: {
-        name: string;
-        email: string;
-        phone: string;
-    };
-    need: string;
-    budget: number;
-    lastInteraction: string;
-    notes?: string;
-    status: LeadStatus;
-    createdAt: string;
-};
-
-// Integration Logic
-export type Integration = {
-    id: string;
-    name: string;
-    logo: string;
-    connected: boolean;
+// Supabase Auth user (safe subset returned by API)
+export type AppUser = {
+  id: string;
+  email: string;
+  full_name: string;
+  avatar_url: string | null;
+  role: string;
+  created_at: string;
 };
