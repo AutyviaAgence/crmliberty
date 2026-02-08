@@ -91,22 +91,24 @@ export function DocumentGrid({ documents, projectId, onUploadClick, onRefetch }:
                   <p className="text-[10px] text-text-muted mt-1">{formatRelativeTime(doc.created_at)}</p>
                 </div>
               </div>
-              <div className="flex justify-end gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="flex gap-2 mt-3 border-t border-border pt-3">
                 {doc.file_url && (
                   <a
                     href={doc.file_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="p-1.5 rounded-lg hover:bg-surface text-text-muted hover:text-primary"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors"
                   >
                     <Download className="h-3.5 w-3.5" />
+                    Télécharger
                   </a>
                 )}
                 <button
                   onClick={() => handleDelete(doc.id)}
-                  className="p-1.5 rounded-lg hover:bg-danger/10 text-text-muted hover:text-danger"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-danger/10 text-danger text-xs font-medium hover:bg-danger/20 transition-colors ml-auto"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
+                  Supprimer
                 </button>
               </div>
             </div>
