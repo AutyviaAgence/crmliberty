@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase";
 import { getAuthenticatedUser, unauthorizedResponse, successResponse, errorResponse } from "@/lib/api-utils";
+import { createNotification } from "@/lib/notifications";
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const user = await getAuthenticatedUser(req);
@@ -8,6 +9,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   const body = await req.json();
   const supabase = createServerSupabaseClient();
+
+  // Get old lead for comparison
+  const { data: oldLead } = await supabase
+    .from("leads")
+    .select("*")
+    .eq("id", params.id)
+    .single();
 
   const { data, error } = await supabase
     .from("leads")
@@ -25,6 +33,22 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       entity_type: "lead",
       entity_id: data.id,
     });
+  }
+
+  // Notify on status change
+  if (body.whitelist_status && oldLead?.whitelist_status !== body.whitelist_status) {
+    // Notify the lead creator if different from current user
+    if (oldLead?.created_by && oldLead.created_by !== user.id) {
+      await createNotification(
+        supabase,
+        oldLead.created_by,
+        "Statut lead modifié",
+        `"${data.company}" → ${body.whitelist_status}`,
+        "lead_status",
+        "lead",
+        data.id
+      );
+    }
   }
 
   return successResponse({ lead: data });

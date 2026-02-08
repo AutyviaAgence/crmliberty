@@ -1,4 +1,4 @@
-import { BarChart, CalendarDays, Lightbulb, Smartphone, Settings, Users } from "lucide-react";
+import { BarChart, CalendarDays, Lightbulb, Smartphone, Settings, Users, Target, FolderOpen } from "lucide-react";
 import type { NavItem } from "./types";
 
 export const NAV_ITEMS: NavItem[] = [
@@ -7,6 +7,8 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Idées", href: "/ideas", icon: Lightbulb },
   { label: "Marketing", href: "/marketing", icon: Smartphone },
   { label: "Leads", href: "/leads", icon: Users },
+  { label: "Objectifs", href: "/objectives", icon: Target },
+  { label: "Documents", href: "/documents", icon: FolderOpen },
   { label: "Paramètres", href: "/settings", icon: Settings },
 ];
 
@@ -40,4 +42,32 @@ export const WHITELIST_STATUSES = [
   { value: "approved" as const, label: "Approuvé", color: "#6366f1" },
   { value: "active" as const, label: "Actif", color: "#22c55e" },
   { value: "revoked" as const, label: "Révoqué", color: "#ef4444" },
+];
+
+export const GOAL_METRIC_TYPES = [
+  { value: "leads_count" as const, label: "Nombre de leads" },
+  { value: "tasks_done" as const, label: "Tâches terminées" },
+  { value: "posts_published" as const, label: "Posts publiés" },
+  { value: "ideas_created" as const, label: "Idées créées" },
+  { value: "revenue" as const, label: "Chiffre d'affaires" },
+  { value: "custom" as const, label: "Personnalisé" },
+];
+
+export const GOAL_PERIODS = [
+  { value: "week" as const, label: "Cette semaine" },
+  { value: "month" as const, label: "Ce mois" },
+  { value: "quarter" as const, label: "Ce trimestre" },
+];
+
+export const PROJECT_STATUSES = [
+  { value: "active" as const, label: "Actif", color: "#22c55e" },
+  { value: "completed" as const, label: "Terminé", color: "#6366f1" },
+  { value: "archived" as const, label: "Archivé", color: "#6b6b80" },
+];
+
+export const TASK_RECURRENCES = [
+  { value: null, label: "Aucune" },
+  { value: "daily" as const, label: "Quotidienne" },
+  { value: "weekly" as const, label: "Hebdomadaire" },
+  { value: "monthly" as const, label: "Mensuelle" },
 ];

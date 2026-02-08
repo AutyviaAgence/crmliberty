@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { apiMutate } from "@/lib/hooks/use-api";
-import { TASK_PRIORITIES } from "@/lib/constants";
+import { TASK_PRIORITIES, TASK_RECURRENCES } from "@/lib/constants";
 import type { Task, AppUser } from "@/lib/types";
 import { Loader2, Check } from "lucide-react";
 import { cn, getInitials } from "@/lib/utils";
@@ -26,6 +26,7 @@ export function TaskFormDialog({ open, onClose, onSaved, users, task }: TaskForm
   const [priority, setPriority] = useState("NORMAL");
   const [assignedTo, setAssignedTo] = useState<string[]>([]);
   const [deadline, setDeadline] = useState("");
+  const [recurrence, setRecurrence] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -36,12 +37,14 @@ export function TaskFormDialog({ open, onClose, onSaved, users, task }: TaskForm
       const existing = Array.isArray(task.assigned_to) ? (task.assigned_to as string[]) : [];
       setAssignedTo(existing);
       setDeadline(task.deadline ? task.deadline.split("T")[0] : "");
+      setRecurrence(task.recurrence || null);
     } else {
       setTitle("");
       setDescription("");
       setPriority("NORMAL");
       setAssignedTo([]);
       setDeadline("");
+      setRecurrence(null);
     }
   }, [task, open]);
 
@@ -63,6 +66,7 @@ export function TaskFormDialog({ open, onClose, onSaved, users, task }: TaskForm
         priority,
         assigned_to: assignedTo,
         deadline: deadline || null,
+        recurrence: recurrence || null,
         ...(task ? {} : { status: "todo" }),
       };
 
@@ -131,6 +135,19 @@ export function TaskFormDialog({ open, onClose, onSaved, users, task }: TaskForm
                 onChange={(e) => setDeadline(e.target.value)}
               />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-text-muted">Récurrence</label>
+            <select
+              value={recurrence || ""}
+              onChange={(e) => setRecurrence(e.target.value || null)}
+              className="w-full h-11 bg-surface border border-border rounded-xl px-3 text-sm text-text-primary"
+            >
+              {TASK_RECURRENCES.map((r) => (
+                <option key={r.label} value={r.value || ""}>{r.label}</option>
+              ))}
+            </select>
           </div>
 
           <div className="space-y-2">

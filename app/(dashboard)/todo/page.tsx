@@ -8,6 +8,7 @@ import type { Task, TaskStatus, AppUser } from "@/lib/types";
 import { KanbanColumn } from "@/components/todo/KanbanColumn";
 import { TaskCard } from "@/components/todo/TaskCard";
 import { TaskFormDialog } from "@/components/todo/TaskFormDialog";
+import { TaskDetailDialog } from "@/components/todo/TaskDetailDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search, Loader2 } from "lucide-react";
@@ -23,6 +24,7 @@ export default function TodoPage() {
   const [filterAssignee, setFilterAssignee] = useState<string>("all");
   const [filterPriority, setFilterPriority] = useState<string>("all");
   const [search, setSearch] = useState("");
+  const [detailTask, setDetailTask] = useState<Task | null>(null);
 
   const users = usersData?.users || [];
 
@@ -152,6 +154,7 @@ export default function TodoPage() {
               users={users}
               onEdit={handleEdit}
               onDelete={handleDelete}
+              onDetailClick={setDetailTask}
             />
           ))}
         </div>
@@ -167,6 +170,16 @@ export default function TodoPage() {
         users={users}
         task={editingTask}
       />
+
+      {detailTask && (
+        <TaskDetailDialog
+          open={!!detailTask}
+          onClose={() => setDetailTask(null)}
+          task={detailTask}
+          users={users}
+          onUpdated={refetch}
+        />
+      )}
     </div>
   );
 }

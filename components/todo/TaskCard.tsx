@@ -6,13 +6,15 @@ import type { Task, AppUser } from "@/lib/types";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { getInitials, cn } from "@/lib/utils";
-import { Calendar, Pencil, Trash2, GripVertical } from "lucide-react";
+import { Calendar, Pencil, Trash2, GripVertical, MessageSquare } from "lucide-react";
 
 interface TaskCardProps {
   task: Task;
   users: AppUser[];
   onEdit?: () => void;
   onDelete?: () => void;
+  onDetailClick?: () => void;
+  commentCount?: number;
 }
 
 const priorityConfig = {
@@ -21,7 +23,7 @@ const priorityConfig = {
   NORMAL: { label: "Normal", variant: "success" as const },
 };
 
-export function TaskCard({ task, users, onEdit, onDelete }: TaskCardProps) {
+export function TaskCard({ task, users, onEdit, onDelete, onDetailClick, commentCount = 0 }: TaskCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.id,
   });
@@ -48,7 +50,12 @@ export function TaskCard({ task, users, onEdit, onDelete }: TaskCardProps) {
       <div className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-2 flex-1 min-w-0" {...attributes} {...listeners}>
           <GripVertical className="h-4 w-4 text-text-muted shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
-          <h4 className="text-text-primary font-medium text-sm truncate">{task.title}</h4>
+          <h4
+            className="text-text-primary font-medium text-sm truncate hover:text-primary cursor-pointer"
+            onClick={(e) => { e.stopPropagation(); onDetailClick?.(); }}
+          >
+            {task.title}
+          </h4>
         </div>
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           {onEdit && (
@@ -78,6 +85,20 @@ export function TaskCard({ task, users, onEdit, onDelete }: TaskCardProps) {
               <Calendar className="h-3 w-3" />
               {deadlineDate.toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}
             </span>
+          )}
+          {commentCount > 0 && (
+            <span
+              className="flex items-center gap-1 text-[10px] text-text-muted cursor-pointer hover:text-primary"
+              onClick={(e) => { e.stopPropagation(); onDetailClick?.(); }}
+            >
+              <MessageSquare className="h-3 w-3" />
+              {commentCount}
+            </span>
+          )}
+          {task.recurrence && (
+            <Badge variant="secondary" className="text-[9px] px-1 py-0 bg-primary/10 text-primary">
+              {task.recurrence === "daily" ? "Jour" : task.recurrence === "weekly" ? "Hebdo" : "Mois"}
+            </Badge>
           )}
         </div>
         {assignees.length > 0 && (

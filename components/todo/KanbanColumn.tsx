@@ -13,9 +13,10 @@ interface KanbanColumnProps {
   users: AppUser[];
   onEdit: (task: Task) => void;
   onDelete: (taskId: string) => void;
+  onDetailClick?: (task: Task) => void;
 }
 
-export function KanbanColumn({ id, title, color, tasks, users, onEdit, onDelete }: KanbanColumnProps) {
+export function KanbanColumn({ id, title, color, tasks, users, onEdit, onDelete, onDetailClick }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id });
 
   return (
@@ -47,6 +48,7 @@ export function KanbanColumn({ id, title, color, tasks, users, onEdit, onDelete 
               users={users}
               onEdit={() => onEdit(task)}
               onDelete={() => onDelete(task.id)}
+              onDetailClick={() => onDetailClick?.(task)}
             />
           ))
         )}

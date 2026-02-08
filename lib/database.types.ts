@@ -14,6 +14,8 @@ export interface Database {
           assigned_to: Json;
           created_by: string | null;
           position: number;
+          recurrence: "daily" | "weekly" | "monthly" | null;
+          recurrence_source_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -27,6 +29,8 @@ export interface Database {
           assigned_to?: Json;
           created_by?: string | null;
           position?: number;
+          recurrence?: "daily" | "weekly" | "monthly" | null;
+          recurrence_source_id?: string | null;
         };
         Update: {
           title?: string;
@@ -36,6 +40,8 @@ export interface Database {
           deadline?: string | null;
           assigned_to?: Json;
           position?: number;
+          recurrence?: "daily" | "weekly" | "monthly" | null;
+          recurrence_source_id?: string | null;
         };
         Relationships: [];
       };
@@ -190,7 +196,7 @@ export interface Database {
           id: string;
           user_id: string | null;
           action: string;
-          entity_type: "task" | "idea" | "post" | "social_account" | "lead" | "auth";
+          entity_type: "task" | "idea" | "post" | "social_account" | "lead" | "auth" | "goal" | "project" | "document";
           entity_id: string | null;
           metadata: Json;
           created_at: string;
@@ -199,7 +205,7 @@ export interface Database {
           id?: string;
           user_id?: string | null;
           action: string;
-          entity_type: "task" | "idea" | "post" | "social_account" | "lead" | "auth";
+          entity_type: "task" | "idea" | "post" | "social_account" | "lead" | "auth" | "goal" | "project" | "document";
           entity_id?: string | null;
           metadata?: Json;
         };
@@ -207,9 +213,221 @@ export interface Database {
           id?: string;
           user_id?: string | null;
           action?: string;
-          entity_type?: "task" | "idea" | "post" | "social_account" | "lead" | "auth";
+          entity_type?: "task" | "idea" | "post" | "social_account" | "lead" | "auth" | "goal" | "project" | "document";
           entity_id?: string | null;
           metadata?: Json;
+        };
+        Relationships: [];
+      };
+      goals: {
+        Row: {
+          id: string;
+          title: string;
+          description: string;
+          metric_type: "leads_count" | "tasks_done" | "posts_published" | "ideas_created" | "revenue" | "custom";
+          target_value: number;
+          current_value: number;
+          unit: string;
+          period: "week" | "month" | "quarter";
+          period_start: string;
+          period_end: string;
+          status: "active" | "completed" | "failed" | "cancelled";
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          title: string;
+          description?: string;
+          metric_type: "leads_count" | "tasks_done" | "posts_published" | "ideas_created" | "revenue" | "custom";
+          target_value: number;
+          current_value?: number;
+          unit?: string;
+          period?: "week" | "month" | "quarter";
+          period_start: string;
+          period_end: string;
+          status?: "active" | "completed" | "failed" | "cancelled";
+          created_by?: string | null;
+        };
+        Update: {
+          title?: string;
+          description?: string;
+          metric_type?: "leads_count" | "tasks_done" | "posts_published" | "ideas_created" | "revenue" | "custom";
+          target_value?: number;
+          current_value?: number;
+          unit?: string;
+          period?: "week" | "month" | "quarter";
+          period_start?: string;
+          period_end?: string;
+          status?: "active" | "completed" | "failed" | "cancelled";
+        };
+        Relationships: [];
+      };
+      projects: {
+        Row: {
+          id: string;
+          name: string;
+          description: string;
+          lead_id: string | null;
+          status: "active" | "completed" | "archived";
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          description?: string;
+          lead_id?: string | null;
+          status?: "active" | "completed" | "archived";
+          created_by?: string | null;
+        };
+        Update: {
+          name?: string;
+          description?: string;
+          lead_id?: string | null;
+          status?: "active" | "completed" | "archived";
+        };
+        Relationships: [
+          {
+            foreignKeyName: "projects_lead_id_fkey";
+            columns: ["lead_id"];
+            isOneToOne: false;
+            referencedRelation: "leads";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      documents: {
+        Row: {
+          id: string;
+          name: string;
+          description: string;
+          file_url: string | null;
+          file_type: string;
+          file_size: number;
+          project_id: string;
+          uploaded_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          description?: string;
+          file_url?: string | null;
+          file_type?: string;
+          file_size?: number;
+          project_id: string;
+          uploaded_by?: string | null;
+        };
+        Update: {
+          name?: string;
+          description?: string;
+          file_url?: string | null;
+          file_type?: string;
+          file_size?: number;
+          project_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "documents_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      task_comments: {
+        Row: {
+          id: string;
+          task_id: string;
+          content: string;
+          author_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          task_id: string;
+          content: string;
+          author_id?: string | null;
+        };
+        Update: {
+          content?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "task_comments_task_id_fkey";
+            columns: ["task_id"];
+            isOneToOne: false;
+            referencedRelation: "tasks";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      sub_tasks: {
+        Row: {
+          id: string;
+          task_id: string;
+          title: string;
+          is_completed: boolean;
+          position: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          task_id: string;
+          title: string;
+          is_completed?: boolean;
+          position?: number;
+        };
+        Update: {
+          title?: string;
+          is_completed?: boolean;
+          position?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "sub_tasks_task_id_fkey";
+            columns: ["task_id"];
+            isOneToOne: false;
+            referencedRelation: "tasks";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      notifications: {
+        Row: {
+          id: string;
+          user_id: string;
+          title: string;
+          message: string;
+          type: "task_assigned" | "lead_status" | "comment" | "goal_achieved" | "general";
+          entity_type: string | null;
+          entity_id: string | null;
+          is_read: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          title: string;
+          message?: string;
+          type: "task_assigned" | "lead_status" | "comment" | "goal_achieved" | "general";
+          entity_type?: string | null;
+          entity_id?: string | null;
+          is_read?: boolean;
+        };
+        Update: {
+          title?: string;
+          message?: string;
+          type?: "task_assigned" | "lead_status" | "comment" | "goal_achieved" | "general";
+          entity_type?: string | null;
+          entity_id?: string | null;
+          is_read?: boolean;
         };
         Relationships: [];
       };
